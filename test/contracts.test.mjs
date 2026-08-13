@@ -153,6 +153,12 @@ test("payload contains the portable Runtime Toolchain but no root instruction fi
   assert.ok(files.includes("toolchain/hooks/runtime-hook.mjs"));
   assert.ok(files.includes("toolchain/bin/agent-browser.mjs"));
   assert.ok(files.includes("toolchain/bin/ctx7.mjs"));
+  assert.ok(files.includes("toolchain/bin/reference-ui.mjs"));
+  assert.ok(files.includes("toolchain/schemas/reference-ui-manifest.schema.json"));
+  assert.ok(files.includes("toolchain/schemas/reference-validation.schema.json"));
+  assert.ok(files.includes(".claude/skills/ui-designer/templates/reference-ui-manifest.json"));
+  assert.ok(files.includes(".claude/skills/browser-verify/templates/reference-validation.json"));
+  assert.ok(!files.includes(".claude/commands/reference-ui.md"));
   assert.ok(files.every((file) => file !== "AGENTS.md" && file !== "CLAUDE.md"));
 });
 
@@ -166,6 +172,18 @@ test("tool-using skills name only project-owned Runtime Toolchain adapters", asy
     const skill = await readFile(path.join(root, ".claude", "skills", name, "SKILL.md"), "utf8");
     assert.match(skill, /toolchain\/bin\/ctx7\.mjs/, name);
     assert.match(skill, /Never use a global `ctx7`/, name);
+  }
+});
+
+test("the Reference UI helper is artifact-only and cannot become a hidden runtime orchestrator", async () => {
+  const files = [
+    "toolchain/bin/reference-ui.mjs",
+    "toolchain/lib/reference-ui-contract.mjs",
+    "toolchain/lib/reference-ui-evidence.mjs",
+  ];
+  for (const relative of files) {
+    const source = await readFile(path.join(root, relative), "utf8");
+    assert.doesNotMatch(source, /node:child_process|executeManagedCapability|runProcess|browser-adapter|doctor\.mjs/, relative);
   }
 });
 
