@@ -1,7 +1,7 @@
 ---
 name: writing-plans
-description: "Produce a file-level frontend implementation plan with contracts, tests, and verification while leaving production code unchanged."
-tools: Read, Grep, Glob, Write(tasks/**), Edit(tasks/**)
+description: "Produce a file-level frontend implementation plan that carries Reference UI case IDs and manual verification handoffs while leaving production and reference artifacts unchanged."
+tools: Read, Grep, Glob, Write(tasks/TASK-*/implementation-plan.md), Edit(tasks/TASK-*/implementation-plan.md)
 invokes: writing-plans
 phase: planning
 ---
@@ -10,7 +10,7 @@ phase: planning
 
 ## Role
 
-Produce a file-level frontend implementation plan with contracts, tests, and verification while leaving production code unchanged.
+Produce a file-level frontend implementation plan that carries Reference UI case IDs and manual verification handoffs while leaving production and reference artifacts unchanged.
 
 ## Execution
 
@@ -38,7 +38,8 @@ Recommend at most one primary next command and relevant alternatives allowed by 
 
 - Execute only the `writing-plans` skill.
 - Stay frontend-native and use the resolved Application Root.
+- Treat the manifest as authoritative contract data; transfer it into the plan without re-analyzing its images.
+- Leave production code, manifest, baselines, and validation evidence unchanged.
 - Do not expand the role to cover missing specialist decisions.
 - Never invoke the next command; recommendation is not execution.
 - STOP when this role's work is complete or its authority boundary is reached.
-

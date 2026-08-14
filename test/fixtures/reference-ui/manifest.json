@@ -1,0 +1,167 @@
+{
+  "$schema": "../../../toolchain/schemas/reference-ui-manifest.schema.json",
+  "schemaVersion": 1,
+  "taskId": "TASK-900",
+  "manifestVersion": 1,
+  "applicationRoot": "test/fixtures/reference-ui/app",
+  "acceptancePolicy": {
+    "colorThreshold": 0.1,
+    "maxMismatchRatio": 0.001
+  },
+  "cases": [
+    {
+      "id": "desktop",
+      "required": true,
+      "priority": "high",
+      "target": {
+        "kind": "route",
+        "identity": "Reference UI fixture",
+        "route": "/index.html"
+      },
+      "state": {
+        "name": "details-open",
+        "setup": [
+          {
+            "action": "waitFor",
+            "locator": { "strategy": "selector", "value": "#surface" },
+            "expected": "fixture ready"
+          }
+        ]
+      },
+      "viewport": { "width": 800, "height": 600, "deviceScaleFactor": 1 },
+      "theme": "light",
+      "reference": {
+        "sourceKind": "local",
+        "source": "references/desktop.png",
+        "baselinePath": "references/desktop.png"
+      },
+      "regions": [
+        {
+          "id": "surface",
+          "priority": "high",
+          "locator": { "strategy": "selector", "value": "#surface" },
+          "tolerance": { "colorThreshold": 0.1, "maxMismatchRatio": 0.001 }
+        }
+      ],
+      "interactions": [
+        {
+          "action": "press",
+          "value": "Tab",
+          "expected": "details toggle receives keyboard focus with a visible focus indicator"
+        },
+        {
+          "action": "press",
+          "value": "Enter",
+          "expected": "details panel visible and aria-expanded true"
+        },
+        {
+          "action": "press",
+          "value": "Enter",
+          "expected": "details panel hidden and aria-expanded false during recovery"
+        },
+        {
+          "action": "press",
+          "value": "Enter",
+          "expected": "details panel visible and aria-expanded true after recovery"
+        }
+      ],
+      "dynamicRegions": [
+        {
+          "id": "run-id-semantic",
+          "strategy": "semantic",
+          "locator": { "strategy": "selector", "value": "#dynamic-value" },
+          "assertion": "text matches ^run-[a-z0-9]+$"
+        },
+        {
+          "id": "run-id-pixels",
+          "strategy": "excluded-from-pixel",
+          "locator": { "strategy": "selector", "value": "#dynamic-value" }
+        }
+      ],
+      "allowedDeviations": [
+        {
+          "id": "dynamic-run-id",
+          "description": "Only the pixels inside #dynamic-value may vary between runs.",
+          "reason": "The run identifier is asserted semantically before its declared pixel region is masked."
+        }
+      ]
+    },
+    {
+      "id": "mobile",
+      "required": true,
+      "priority": "high",
+      "target": {
+        "kind": "route",
+        "identity": "Reference UI fixture",
+        "route": "/index.html"
+      },
+      "state": {
+        "name": "details-open",
+        "setup": [
+          {
+            "action": "waitFor",
+            "locator": { "strategy": "selector", "value": "#surface" },
+            "expected": "fixture ready"
+          }
+        ]
+      },
+      "viewport": { "width": 390, "height": 844, "deviceScaleFactor": 1 },
+      "theme": "light",
+      "reference": {
+        "sourceKind": "local",
+        "source": "references/mobile.png",
+        "baselinePath": "references/mobile.png"
+      },
+      "regions": [
+        {
+          "id": "surface",
+          "priority": "high",
+          "locator": { "strategy": "selector", "value": "#surface" },
+          "tolerance": { "colorThreshold": 0.1, "maxMismatchRatio": 0.001 }
+        }
+      ],
+      "interactions": [
+        {
+          "action": "press",
+          "value": "Tab",
+          "expected": "details toggle receives keyboard focus with a visible focus indicator"
+        },
+        {
+          "action": "press",
+          "value": "Enter",
+          "expected": "details panel visible and aria-expanded true"
+        },
+        {
+          "action": "press",
+          "value": "Enter",
+          "expected": "details panel hidden and aria-expanded false during recovery"
+        },
+        {
+          "action": "press",
+          "value": "Enter",
+          "expected": "details panel visible and aria-expanded true after recovery"
+        }
+      ],
+      "dynamicRegions": [
+        {
+          "id": "run-id-semantic",
+          "strategy": "semantic",
+          "locator": { "strategy": "selector", "value": "#dynamic-value" },
+          "assertion": "text matches ^run-[a-z0-9]+$"
+        },
+        {
+          "id": "run-id-pixels",
+          "strategy": "excluded-from-pixel",
+          "locator": { "strategy": "selector", "value": "#dynamic-value" }
+        }
+      ],
+      "allowedDeviations": [
+        {
+          "id": "dynamic-run-id",
+          "description": "Only the pixels inside #dynamic-value may vary between runs.",
+          "reason": "The run identifier is asserted semantically before its declared pixel region is masked."
+        }
+      ]
+    }
+  ]
+}

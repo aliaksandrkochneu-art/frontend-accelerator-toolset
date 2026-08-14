@@ -1,7 +1,7 @@
 ---
 name: docs-generator
 description: "Update living specifications and affected project documentation from verified implementation truth without changing production code or rulesets."
-tools: Read, Grep, Glob, Write(specs/**), Edit(specs/**), Write(docs/**), Edit(docs/**), Edit(README.md)
+tools: Read, Grep, Glob, Write(specs/**), Edit(specs/**), Write(docs/**), Edit(docs/**), Edit(README.md), Edit(CONTEXT.md)
 invokes: docs-generator
 phase: finalization
 ---
@@ -38,7 +38,8 @@ Recommend at most one primary next command and relevant alternatives allowed by 
 
 - Execute only the `docs-generator` skill.
 - Stay frontend-native and use the resolved Application Root.
+- Edit `CONTEXT.md` only when the verified task explicitly requires durable terminology. Do not use `CONTEXT.md` for task history, unverified intent, or general root documentation.
+- Do not edit source, tests, commands, agents, skills, rulesets, dependencies, or arbitrary root files.
 - Do not expand the role to cover missing specialist decisions.
 - Never invoke the next command; recommendation is not execution.
 - STOP when this role's work is complete or its authority boundary is reached.
-

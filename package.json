@@ -22,7 +22,8 @@
   "scripts": {
     "sync:agents": "node ./scripts/sync-agents.mjs",
     "check:agents": "node ./scripts/sync-agents.mjs --check",
-    "test": "node --test",
+    "test": "node --test \"test/*.test.mjs\"",
+    "test:reference-ui-live": "node ./test/live/reference-ui.live.mjs",
     "check": "npm test && npm run check:agents"
   }
 }

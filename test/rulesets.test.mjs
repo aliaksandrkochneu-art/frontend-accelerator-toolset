@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { readdir, readFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
@@ -33,6 +34,12 @@ function markdownLinks(markdown) {
 
 async function sha256(file) {
   return createHash("sha256").update(await readFile(file)).digest("hex");
+}
+
+async function createFixture(t) {
+  const directory = await mkdtemp(path.join(os.tmpdir(), "reference rulesets "));
+  t.after(() => rm(directory, { force: true, recursive: true }));
+  return directory;
 }
 
 test("all ruleset index references exist and stay inside their layer", async () => {
@@ -101,4 +108,77 @@ test("the initial Project Ruleset has guidance but no active project policy", as
   const readme = await readFile(path.join(rulesetsRoot, "project", "README.md"), "utf8");
   assert.match(readme, /arbitrary direct Markdown files/);
   assert.match(readme, /does not infer rules automatically/);
+});
+
+test("reference-aware Common rules are routed and optional Framework or Project sections may be absent", async (t) => {
+  const uiIndex = await readFile(path.join(rulesetsRoot, "common", "ui-designer", "INDEX.md"), "utf8");
+  const coderIndex = await readFile(path.join(rulesetsRoot, "common", "coder", "INDEX.md"), "utf8");
+  const browserIndex = await readFile(path.join(rulesetsRoot, "common", "browser-verify", "INDEX.md"), "utf8");
+  assert.match(uiIndex, /\[Reference Evidence\]\(rules\/reference-evidence\.md\)/);
+  assert.match(coderIndex, /\[Reference Correction Iterations\]\(rules\/reference-correction-iterations\.md\)/);
+  assert.match(browserIndex, /\[Reference Conformance\]\(rules\/reference-conformance\.md\)/);
+
+  const uiRule = await readFile(
+    path.join(rulesetsRoot, "common", "ui-designer", "rules", "reference-evidence.md"),
+    "utf8",
+  );
+  const coderRule = await readFile(
+    path.join(rulesetsRoot, "common", "coder", "rules", "reference-correction-iterations.md"),
+    "utf8",
+  );
+  const browserRule = await readFile(
+    path.join(rulesetsRoot, "common", "browser-verify", "rules", "reference-conformance.md"),
+    "utf8",
+  );
+  assert.match(uiRule, /planning-only/i);
+  assert.match(uiRule, /tasks\/TASK-NNN\/reference-ui\/manifest\.json/);
+  assert.match(coderRule, /latest validation iteration/i);
+  assert.match(coderRule, /`passedCases`/);
+  assert.match(coderRule, /read-only inputs/i);
+  assert.match(coderRule, /three recommendation classes mutually exclusive/i);
+  assert.match(coderRule, /Specialist prerequisite blocker:[\s\S]*before implementation or becoming unresolved during implementation or checks/i);
+  assert.match(coderRule, /Implementation\/check blocked:[\s\S]*runtime, test, or tooling problem/i);
+  assert.match(coderRule, /Browser Verify is not allowed for this outcome/i);
+  assert.match(coderRule, /Only after reference-aware implementation and essential tests are complete/i);
+  assert.match(browserRule, /only when the request explicitly identifies a Reference UI manifest or explicitly asks for reference verification/i);
+  assert.match(browserRule, /color threshold `0\.1` and maximum whole-surface mismatch ratio `0\.01`/i);
+  assert.match(browserRule, /high-priority region outside tolerance fails even when the whole-surface comparison passes/i);
+  assert.match(browserRule, /semantic assertions remain semantic, scoped-pixel regions remain compared, and pixel exclusions remove only the declared pixels/i);
+  assert.match(browserRule, /`match=true` and `differentPixels=0`[\s\S]*machine-readable zero-diff JSON report/i);
+  assert.match(browserRule, /same case or region scope[\s\S]*`diff` or `region-diff` artifact/i);
+  assert.match(browserRule, /Never substitute a copy of the baseline or current screenshot for a pixel diff/i);
+  assert.match(browserRule, /missing for `differentPixels > 0` or a dimension mismatch[\s\S]*iteration, case, region, requested output path, and full measurement/i);
+  assert.match(browserRule, /Stop before finalization[\s\S]*generic finalizer failure/i);
+  assert.match(browserRule, /stable case ID, optional named region ID, failed axis, severity, expected observation, actual observation, at least one supporting artifact or measurement/i);
+  assert.match(browserRule, /finding exists only for a `FAIL` axis/i);
+  assert.match(browserRule, /manifest, baselines, and previous iterations immutable/i);
+  assert.match(browserRule, /atomically create one append-only `validation\/iteration-NNN\/`/i);
+  for (const verdict of ["BLOCKED", "FAIL", "PASS", "NOT-APPLICABLE"]) {
+    assert.match(browserRule, new RegExp("Return `" + verdict + "`", "i"));
+  }
+  assert.match(browserRule, /`PASS` recommends Verify as the only next manual step/i);
+  assert.match(browserRule, /`FAIL` from an implementation mismatch recommends Coder/i);
+  assert.match(browserRule, /`FAIL` from a proven application\/runtime defect recommends Debugger/i);
+  assert.match(browserRule, /`BLOCKED` and `NOT-APPLICABLE` make no `flow-next` recommendation/i);
+  assert.match(browserRule, /never presented as `PASS` or ready for Verify/i);
+  assert.match(browserRule, /Never launch the recommended role[\s\S]*applicable single recommendation, STOP/i);
+
+  const fixtureRoot = await createFixture(t);
+  for (const [section, ruleName] of [
+    ["ui-designer", "reference-evidence.md"],
+    ["coder", "reference-correction-iterations.md"],
+    ["browser-verify", "reference-conformance.md"],
+  ]) {
+    const sectionRoot = path.join(fixtureRoot, "common", section);
+    await mkdir(path.join(sectionRoot, "rules"), { recursive: true });
+    await writeFile(path.join(sectionRoot, "rules", ruleName), "# Optional Reference Rule\n", "utf8");
+    await writeFile(path.join(sectionRoot, "INDEX.md"), `[Rule](rules/${ruleName})\n`, "utf8");
+  }
+  const fixtureIndexes = (await walk(fixtureRoot)).filter((file) => path.basename(file) === "INDEX.md");
+  assert.equal(fixtureIndexes.length, 3);
+  for (const index of fixtureIndexes) {
+    for (const reference of markdownLinks(await readFile(index, "utf8"))) {
+      await assert.doesNotReject(readFile(path.resolve(path.dirname(index), reference), "utf8"));
+    }
+  }
 });

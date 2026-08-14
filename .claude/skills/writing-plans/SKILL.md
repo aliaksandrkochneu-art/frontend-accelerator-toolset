@@ -22,20 +22,21 @@ Produce an ordered, file-level handoff that another frontend developer can imple
 
 ## Procedure
 
-1. Read confirmed requirements, applicable task artifacts, living specifications, relevant source files, tests, scripts, and project conventions.
+1. Read confirmed requirements, applicable task artifacts, living specifications, relevant source files, tests, scripts, and project conventions. When present, read `tasks/TASK-NNN/reference-ui/manifest.json` and the latest compatible validation evidence as contract data.
 2. Check that architecture, API, UI direction, and dependency choices required by the work are resolved. Do not make missing specialist decisions silently.
 3. Describe current behavior and intended behavior.
-4. List exact files to create or modify, why each changes, and important contracts between steps.
-5. Order implementation steps by dependency and identify which steps may proceed independently.
-6. Include essential tests beside the behavior they protect and additional risk-based test opportunities separately.
-7. List existing verification commands discovered from the selected Application Root. Do not invent commands or require dependency installation.
-8. Record rollback or feature-flag considerations only when the task risk justifies them.
-9. Write `tasks/TASK-NNN/implementation-plan.md` when a task workspace exists or durable handoff is requested.
+4. When a Reference UI Manifest exists, carry its manifest path and version, every case ID, target, state, viewport, regions, interactions, acceptance criteria, allowed deviations, and previously passed cases into the handoff. Treat those fields as authoritative; do not re-analyze images or create a second visual interpretation.
+5. List exact files to create or modify, why each changes, and important contracts between steps.
+6. Order implementation steps by dependency and identify which steps may proceed independently. Include explicit preservation work for previously passed reference cases.
+7. Include essential behavior tests beside the behavior they protect and additional risk-based test opportunities separately.
+8. List existing verification commands discovered from the selected Application Root. For reference-aware work, add an explicit manual Browser Verify handoff after implementation with the applicable case IDs and criteria. Do not invoke Browser Verify.
+9. Record rollback or feature-flag considerations only when the task risk justifies them.
+10. Write `tasks/TASK-NNN/implementation-plan.md` when a task workspace exists or durable handoff is requested. Leave production code and reference artifacts unchanged.
 
 ## Plan Quality
 
-Do not paste complete production implementations, prescribe artificial micro-commits, or turn unresolved assumptions into instructions.
+Do not paste complete production implementations, prescribe artificial micro-commits, duplicate image analysis, or turn unresolved assumptions into instructions.
 
 ## Stop Contract
 
-STOP after the plan is actionable, or earlier when a required specialist decision is missing. Never invoke the recommended command.
+Recommend at most one allowed next manual command, then STOP after the plan is actionable, or earlier with the owning specialist when a required decision is missing. Never invoke the recommended command.

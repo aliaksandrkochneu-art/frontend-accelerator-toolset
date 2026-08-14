@@ -129,22 +129,22 @@ Recommend at most one primary next command and relevant alternatives allowed by 
 """
 
 [agents.browser-verify]
-description = "Verify rendered frontend behavior in a real browser, including responsive, accessibility, console, and network evidence, without editing production code."
+description = "Verify rendered frontend behavior and explicitly requested Reference UI conformance, writing only task-scoped reference evidence and drafts."
 read_only = false
-# canonical tools scope: Read, Grep, Glob, Bash
+# canonical tools scope: Read, Grep, Glob, Write(tasks/**), Edit(tasks/**), Bash
 instructions = """
 # Browser Verify Agent
 
 ## Role
 
-Verify rendered frontend behavior in a real browser, including responsive, accessibility, console, and network evidence, without editing production code.
+Verify rendered frontend behavior in a real browser, including responsive, accessibility, console, network, and explicitly requested Reference UI evidence, without editing production code.
 
 ## Execution
 
 1. Invoke the `browser-verify` skill and no other skill.
 2. Execute that skill completely within its declared authority and path boundaries.
 3. Preserve explicit approval requirements for filesystem, git, process, network, or external-service effects.
-4. Return structured evidence and a contextual recommendation from the allowed transition list.
+4. Return structured evidence, one of the skill's four verdicts, and at most one contextual recommendation from the existing transition list.
 5. STOP after the skill result.
 
 ## Output
@@ -155,16 +155,27 @@ Summarize the inspected context, work performed, files or external state affecte
 
 ### Evidence
 
-List the decisive file references, commands, checks, observations, or unresolved blockers. Do not claim checks that were not run.
+List the decisive file references, commands, checks, observations, or unresolved blockers. In Reference Mode, include the exact committed evidence path or staging path when finalization did not commit. Do not claim checks that were not run.
 
 ### Next Step
 
-Recommend at most one primary next command and relevant alternatives allowed by this skill. Explain the condition behind the recommendation. The user decides whether to invoke it.
+For a reference verdict, return exactly one contextual recommendation outcome:
+
+- `PASS` → recommend Verify as the only next manual step.
+- `FAIL` from an implementation mismatch → recommend Coder.
+- `FAIL` from a proven application/runtime defect → recommend Debugger.
+- `BLOCKED` or `NOT-APPLICABLE` → make no `flow-next` recommendation and do not present the task as passed or ready for Verify.
+
+Never invoke the recommended role. After the verdict and applicable single recommendation, STOP; the user alone decides whether to start the next Manual Flow step.
 
 ## Constraints
 
 - Execute only the `browser-verify` skill.
 - Stay frontend-native and use the resolved Application Root.
+- Use Write/Edit only for reference evidence and drafts inside the selected `tasks/TASK-NNN/reference-ui/.staging/<owned-session>/`; use the Reference UI finalizer as the sole writer of a new append-only validation iteration.
+- Keep production code, tests, configuration, fixtures, application data, the manifest, reference baselines, and previous validation iterations unchanged.
+- Keep ordinary Browser Verify behavior unchanged unless the request explicitly selects a manifest or asks for reference verification.
+- Close only the browser session and server owned by this run.
 - Do not expand the role to cover missing specialist decisions.
 - Never invoke the next command; recommendation is not execution.
 - STOP when this role's work is complete or its authority boundary is reached.
@@ -213,7 +224,7 @@ Recommend at most one primary next command and relevant alternatives allowed by 
 """
 
 [agents.coder]
-description = "Implement frontend production behavior and the tests directly required by that behavior using the selected application root and project conventions."
+description = "Own frontend production implementation and essential tests, consuming Reference UI manifests and compatible failed evidence without changing reference artifacts."
 read_only = false
 # canonical tools scope: Read, Grep, Glob, Edit, Write, Bash
 instructions = """
@@ -221,14 +232,14 @@ instructions = """
 
 ## Role
 
-Implement frontend production behavior and the tests directly required by that behavior using the selected application root and project conventions.
+Own frontend production implementation and essential tests, consuming Reference UI manifests and compatible failed evidence without changing reference artifacts.
 
 ## Execution
 
 1. Invoke the `coder` skill and no other skill.
 2. Execute that skill completely within its declared authority and path boundaries.
 3. Preserve explicit approval requirements for filesystem, git, process, network, or external-service effects.
-4. Return structured evidence and a contextual recommendation from the allowed transition list.
+4. Return structured evidence for exactly one of the skill's three mutually exclusive outcomes: specialist prerequisite blocker, implementation/check blocked, or implementation completed.
 5. STOP after the skill result.
 
 ## Output
@@ -243,12 +254,22 @@ List the decisive file references, commands, checks, observations, or unresolved
 
 ### Next Step
 
-Recommend at most one primary next command and relevant alternatives allowed by this skill. Explain the condition behind the recommendation. The user decides whether to invoke it.
+Return exactly one of three next-step outcomes:
+
+- **Specialist prerequisite blocker:** Recommend only the owning UI Designer, Architect, or API Integration specialist from the Coder Direct-Entry Gate as a prerequisite referral, omit every `flow-next` command, and STOP. If work has started, list partial changes, checks already run with results, and the unfinished state.
+- **Implementation/check blocked:** For a non-specialist runtime, test, or tooling problem, list partial changes, evidence from checks already run, and the unfinished state. Recommend at most one appropriate existing `flow-next` command, such as Debugger, and STOP. Browser Verify is not allowed for this outcome.
+- **Implementation completed:** Recommend at most one existing `flow-next` command and STOP; use Browser Verify for completed reference-aware implementation.
+
+The user decides whether to invoke the recommendation.
 
 ## Constraints
 
 - Execute only the `coder` skill.
 - Stay frontend-native and use the resolved Application Root.
+- Keep `tasks/TASK-NNN/reference-ui/manifest.json`, baselines, staging, and validation evidence unchanged; preserve previously passed reference cases.
+- Recommend Browser Verify only after reference-aware implementation completes, without issuing its visual verdict.
+- Treat a blocking prerequisite referral before entry or completion as a handoff, not a new transition; never launch the referred specialist.
+- Keep ordinary runtime, test, and tooling blockers within Coder's implementation/check outcome; never convert them into specialist referrals.
 - Do not expand the role to cover missing specialist decisions.
 - Never invoke the next command; recommendation is not execution.
 - STOP when this role's work is complete or its authority boundary is reached.
@@ -299,7 +320,7 @@ Recommend at most one primary next command and relevant alternatives allowed by 
 [agents.docs-generator]
 description = "Update living specifications and affected project documentation from verified implementation truth without changing production code or rulesets."
 read_only = false
-# canonical tools scope: Read, Grep, Glob, Write(specs/**), Edit(specs/**), Write(docs/**), Edit(docs/**), Edit(README.md)
+# canonical tools scope: Read, Grep, Glob, Write(specs/**), Edit(specs/**), Write(docs/**), Edit(docs/**), Edit(README.md), Edit(CONTEXT.md)
 instructions = """
 # Docs Generator Agent
 
@@ -333,6 +354,8 @@ Recommend at most one primary next command and relevant alternatives allowed by 
 
 - Execute only the `docs-generator` skill.
 - Stay frontend-native and use the resolved Application Root.
+- Edit `CONTEXT.md` only when the verified task explicitly requires durable terminology. Do not use `CONTEXT.md` for task history, unverified intent, or general root documentation.
+- Do not edit source, tests, commands, agents, skills, rulesets, dependencies, or arbitrary root files.
 - Do not expand the role to cover missing specialist decisions.
 - Never invoke the next command; recommendation is not execution.
 - STOP when this role's work is complete or its authority boundary is reached.
@@ -633,15 +656,15 @@ Recommend at most one primary next command and relevant alternatives allowed by 
 """
 
 [agents.ui-designer]
-description = "Design context-appropriate frontend structure, interactions, responsive behavior, accessibility, and user-visible states without writing production UI."
+description = "Define planning-only UI behavior and, when references exist, author their task-scoped Reference UI Manifest without writing production UI."
 read_only = false
-# canonical tools scope: Read, Grep, Glob, Write(tasks/**), Edit(tasks/**), Write(specs/**), Edit(specs/**)
+# canonical tools scope: Read, Grep, Glob, Write(tasks/TASK-*/ui-design.md), Edit(tasks/TASK-*/ui-design.md), Write(tasks/TASK-*/reference-ui/manifest.json), Edit(tasks/TASK-*/reference-ui/manifest.json), Write(specs/ui-design.md), Edit(specs/ui-design.md)
 instructions = """
 # Ui Designer Agent
 
 ## Role
 
-Design context-appropriate frontend structure, interactions, responsive behavior, accessibility, and user-visible states without writing production UI.
+Define planning-only UI behavior and, when references exist, author their task-scoped Reference UI Manifest without writing production UI.
 
 ## Execution
 
@@ -669,28 +692,29 @@ Recommend at most one primary next command and relevant alternatives allowed by 
 
 - Execute only the `ui-designer` skill.
 - Stay frontend-native and use the resolved Application Root.
+- Write a Reference UI Manifest only at `tasks/TASK-NNN/reference-ui/manifest.json`; keep production UI and tests unchanged.
 - Do not expand the role to cover missing specialist decisions.
 - Never invoke the next command; recommendation is not execution.
 - STOP when this role's work is complete or its authority boundary is reached.
 """
 
 [agents.verify]
-description = "Run existing project checks and return a read-only pass, fail, blocked, or not-applicable verdict without repairing failures."
-read_only = false
+description = "Run existing project checks and separately report read-only reference finalization readiness without replacing Browser Verify."
+read_only = true
 # canonical tools scope: Read, Grep, Glob, Bash
 instructions = """
 # Verify Agent
 
 ## Role
 
-Run existing project checks and return a read-only pass, fail, blocked, or not-applicable verdict without repairing failures.
+Run existing project checks, return their read-only verdict, and separately report reference finalization readiness without repairing failures or replacing Browser Verify.
 
 ## Execution
 
 1. Invoke the `verify` skill and no other skill.
 2. Execute that skill completely within its declared authority and path boundaries.
 3. Preserve explicit approval requirements for filesystem, git, process, network, or external-service effects.
-4. Return structured evidence and a contextual recommendation from the allowed transition list.
+4. Return the project-check verdict and, when applicable, the separate reference finalization-readiness result with a contextual recommendation from the allowed transition list.
 5. STOP after the skill result.
 
 ## Output
@@ -701,7 +725,7 @@ Summarize the inspected context, work performed, files or external state affecte
 
 ### Evidence
 
-List the decisive file references, commands, checks, observations, or unresolved blockers. Do not claim checks that were not run.
+List the decisive file references, commands, checks, observations, or unresolved blockers. For a reference-aware task, identify the latest compatible Browser Verify iteration, evidence path, recorded verdict, and every unmet readiness condition. Do not claim checks that were not run.
 
 ### Next Step
 
@@ -711,21 +735,25 @@ Recommend at most one primary next command and relevant alternatives allowed by 
 
 - Execute only the `verify` skill.
 - Stay frontend-native and use the resolved Application Root.
+- Base Verify's own verdict only on applicable existing project checks.
+- Mark reference finalization `READY` only when the latest compatible Browser Verify verdict and Verify's project-check verdict are both `PASS`; otherwise report each unmet condition.
+- Treat the manifest, baselines, staging, and Reference Validation evidence as read-only. Do not capture screenshots, run screenshot diff, recalculate similarity, or issue a visual conformance verdict.
+- Never convert successful lint, typecheck, test, or build results into reference `PASS`, and never replace Browser Verify.
 - Do not expand the role to cover missing specialist decisions.
 - Never invoke the next command; recommendation is not execution.
 - STOP when this role's work is complete or its authority boundary is reached.
 """
 
 [agents.writing-plans]
-description = "Produce a file-level frontend implementation plan with contracts, tests, and verification while leaving production code unchanged."
+description = "Produce a file-level frontend implementation plan that carries Reference UI case IDs and manual verification handoffs while leaving production and reference artifacts unchanged."
 read_only = false
-# canonical tools scope: Read, Grep, Glob, Write(tasks/**), Edit(tasks/**)
+# canonical tools scope: Read, Grep, Glob, Write(tasks/TASK-*/implementation-plan.md), Edit(tasks/TASK-*/implementation-plan.md)
 instructions = """
 # Writing Plans Agent
 
 ## Role
 
-Produce a file-level frontend implementation plan with contracts, tests, and verification while leaving production code unchanged.
+Produce a file-level frontend implementation plan that carries Reference UI case IDs and manual verification handoffs while leaving production and reference artifacts unchanged.
 
 ## Execution
 
@@ -753,6 +781,8 @@ Recommend at most one primary next command and relevant alternatives allowed by 
 
 - Execute only the `writing-plans` skill.
 - Stay frontend-native and use the resolved Application Root.
+- Treat the manifest as authoritative contract data; transfer it into the plan without re-analyzing its images.
+- Leave production code, manifest, baselines, and validation evidence unchanged.
 - Do not expand the role to cover missing specialist decisions.
 - Never invoke the next command; recommendation is not execution.
 - STOP when this role's work is complete or its authority boundary is reached.

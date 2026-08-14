@@ -7,7 +7,7 @@ flow-next: [coder, debugger, verify]
 
 # Browser Verify
 
-Spawn the isolated `browser-verify` agent for this frontend activity.
+Spawn the existing isolated `browser-verify` agent for ordinary browser verification or explicitly requested task-scoped Reference UI verification.
 
 ## Input
 
@@ -18,8 +18,7 @@ $ARGUMENTS
 Use the Task tool with exactly:
 
 - subagent_type: browser-verify
-- description: Verify rendered frontend behavior in a real browser, including responsive, accessibility, console, and network evidence, without editing production code.
+- description: Verify rendered frontend behavior and explicitly requested Reference UI conformance, writing only task-scoped reference evidence and drafts without editing production code.
 - prompt: $ARGUMENTS
 
 Return the agent's result to the user. Do not perform the skill's work in this command wrapper and do not continue to another role.
-
