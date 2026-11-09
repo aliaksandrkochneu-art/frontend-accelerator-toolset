@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, realpath, rm, symlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -248,7 +248,7 @@ test("a valid desktop and mobile manifest resolves baselines and has a stable di
   assert.match(first.digest, /^[a-f0-9]{64}$/);
   assert.equal(first.digest, second.digest);
   assert.deepEqual(Object.keys(first.baselines), ["desktop", "mobile"]);
-  assert.equal(first.applicationRoot, fixture.repositoryRoot);
+  assert.equal(first.applicationRoot, await realpath(fixture.repositoryRoot));
 });
 
 test("the internal CLI validates a manifest without discovering or launching runtime work", async (t) => {
@@ -746,14 +746,14 @@ test("a staging cleanup error returns a warning after the iteration is committed
     manifestPath: fixture.manifestPath,
     draftPath: staging.draftPath,
     async removeStaging(target, options) {
-      assert.equal(target, staging.stagingRoot);
+      assert.equal(target, await realpath(staging.stagingRoot));
       assert.deepEqual(options, { force: true, recursive: true });
       throw cleanupError;
     },
   });
 
   assert.equal(result.cleanupWarning.code, "STAGING_CLEANUP_FAILED");
-  assert.equal(result.cleanupWarning.path, staging.stagingRoot);
+  assert.equal(result.cleanupWarning.path, await realpath(staging.stagingRoot));
   assert.match(result.cleanupWarning.message, /iteration-001 is committed/i);
   assert.match(result.cleanupWarning.message, /injected staging removal failure/);
   assert.equal(JSON.parse(await readFile(result.evidencePath, "utf8")).iteration, 1);
