@@ -4,6 +4,18 @@
 
 ## Selected Direction
 
+## Reference UI Contract
+
+- Manifest: `tasks/TASK-NNN/reference-ui/manifest.json`
+- Manifest version:
+- Reference case IDs:
+
+## Observed Reference Facts
+
+## Inferred Behavior
+
+## Reference Ambiguities And Allowed Deviations
+
 ## Information Hierarchy
 
 ## Primary Flow
@@ -15,4 +27,3 @@
 ## Accessibility And Interaction
 
 ## Reuse Candidates
-

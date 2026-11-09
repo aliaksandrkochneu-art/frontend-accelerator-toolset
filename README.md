@@ -186,6 +186,81 @@ Agents resolve rules through role-specific `INDEX.md` files. Missing optional se
 
 To replace React, remove or archive the React-specific content under `rulesets/framework/`, add the new framework rules, and update the relevant role indexes. The default React rules are pinned donor snapshots with adjacent source metadata.
 
+## Optional Reference-Aware UI Delivery
+
+A task may opt into reference-driven delivery by adding a Reference UI Contract. This does not add a command or a workflow lane: every step remains a separate user invocation in the existing Manual Flow, every role STOPs after its own work, and no role automatically starts another role.
+
+The full manual route is:
+
+```text
+UI Designer -> STOP -> Writing Plans -> STOP -> Coder -> STOP -> Browser Verify -> STOP -> Verify -> STOP
+```
+
+The user selects each next command. UI Designer is needed when reference direction, state, viewport, or acceptance intent is unresolved; Writing Plans carries the confirmed case IDs and acceptance criteria without analyzing the images again; Coder implements production behavior; Browser Verify records real-browser conformance evidence; Verify separately runs existing project checks and reports finalization readiness.
+
+When Browser Verify reports an implementation mismatch, the user may invoke Coder and then Browser Verify again; a proven application/runtime defect may instead be handed manually to Debugger. A changed reference direction returns to UI Designer and requires a versioned manifest revision. Browser Verify recommends Verify only after a completed reference-aware implementation passes. These correction steps are recommendations followed by STOP, never an automatic retry loop.
+
+### Task artifacts
+
+Reference artifacts remain inside the selected Task Workspace:
+
+```text
+tasks/TASK-NNN/reference-ui/
+|-- manifest.json
+|-- references/                         # selected local baselines
+|-- .staging/<owned-session>/           # current owned capture and draft
+`-- validation/
+    |-- iteration-001/
+    |   |-- evidence.json
+    |   `-- cases/<case-id>/...
+    `-- iteration-002/...
+```
+
+- `manifest.json` is the versioned contract for stable case IDs, routes or components, states, declared desktop or mobile viewports, named regions, local baselines, tolerances, setup, interactions, semantic expectations, and dynamic-region handling.
+- `references/` contains explicit local baseline inputs. Browser Verify never captures or updates a baseline automatically. Replacing a baseline is a separate planning decision that requires a compatible manifest revision, not a way to make a failed comparison pass.
+- `.staging/<owned-session>/` belongs only to the current Browser Verify session. Draft evidence and capture output stay within that owned task scope.
+- `validation/iteration-NNN/` is committed atomically and append-only. Earlier iterations are immutable; stable finding identities support `new`, `resolved`, `unchanged`, and `regressed` classifications across compatible iterations.
+
+### Role authority
+
+| Role | Reference-aware responsibility | Boundary |
+| --- | --- | --- |
+| UI Designer | Interpret confirmed reference direction and author the task manifest. | Planning-only; cannot change production UI or issue a browser verdict. |
+| Writing Plans | Carry case IDs, acceptance criteria, preservation requirements, and the manual Browser Verify handoff into the implementation plan. | Does not reinterpret images or modify implementation. |
+| Coder | Read the manifest and latest compatible failed evidence, implement production UI and essential behavior tests, and preserve cases that already pass. | Sole production-code owner; cannot modify the manifest, baselines, or validation evidence. |
+| Browser Verify | Reproduce declared cases in a real browser and finalize task-scoped evidence. | Evidence-only; cannot modify production code, tests, configuration, fixtures, application data, baselines, or prior iterations. |
+| Verify | Run applicable project checks and read the latest compatible Browser Verify verdict when reporting finalization readiness. | Read-only; does not capture screenshots, run screenshot diff, recalculate similarity, or create reference evidence. |
+
+Reference Browser Verify keeps the same runtime boundary as ordinary browser verification: the project Doctor is the first readiness gate, and browser actions use only the project-owned adapter:
+
+```powershell
+node ./toolchain/bin/doctor.mjs --json
+node ./toolchain/bin/agent-browser.mjs --session <owned-session> <command>
+```
+
+There is no global `agent-browser`, Playwright CLI, second browser provider, or automatic specialist invocation. Browser Verify returns one of four reference verdicts:
+
+- `PASS`: every required case passed every applicable visual, semantic, behavior, accessibility, console, and network hard gate.
+- `FAIL`: at least one applicable hard gate has an actionable mismatch or proven application/runtime defect.
+- `BLOCKED`: required assets, state, URL, runtime capability, or approval did not permit a verdict.
+- `NOT-APPLICABLE`: the explicit request has no reference-verifiable surface.
+
+Successful lint, typecheck, tests, or build do not imply reference `PASS`. Finalization readiness requires both a latest compatible Browser Verify `PASS` and a Verify project-check `PASS` for the selected downstream application task.
+
+The pinned `agent-browser@0.32.3` does not create its requested diff PNG when a screenshot is an exact match. In that case Browser Verify preserves the truthful measurement as a deterministic machine-readable zero-diff JSON artifact in the same case or region scope and declares it as the required diff evidence. It never labels a copy of the baseline or current screenshot as a pixel diff. A missing output for a non-zero or dimension-mismatched comparison is reported before finalization rather than hidden as a generic evidence error.
+
+### Explicit live fixture
+
+Maintainers can run the framework-neutral managed-browser acceptance explicitly:
+
+```powershell
+npm run test:reference-ui-live
+```
+
+This test is intentionally excluded from ordinary `npm test`. It uses the project Doctor, project-owned browser adapter, committed desktop/mobile baselines, a test-owned local server, and a temporary task workspace. Acceptance proves an initial mismatch, a corrected pass, and a deliberate regression with `new`, `resolved`, and `regressed` classifications, while also exercising semantic interaction, keyboard/focus recovery, and baseline immutability.
+
+An overall fixture acceptance `PASS` proves the toolset lifecycle; the deliberate final regression is an expected test condition, not an acceptance failure. The fixture cleanup removes its temporary task evidence, so this result does not create persistent Browser Verify evidence or make any downstream application task ready for finalization. A concrete application task must select its own manifest and obtain its own latest compatible Browser Verify `PASS`.
+
 ## Browser Verification
 
 `browser-verify` first runs the project Doctor, then uses only:
@@ -205,6 +280,8 @@ The current Runtime Toolchain intentionally does not provision RTK, CodeGraph, o
 ## Verification Status
 
 Automated tests cover manifest validation, platform cache resolution, atomic setup behavior, receipt-backed and legacy installation updates, read-only Doctor states, safe hook merges, current-session file attribution, lint-loop suppression, skill contracts, catalog/ruleset integrity, and generated Codex parity. The configured CI matrix runs the fake-installer suite on Node.js 24 across Windows, Linux, and macOS without downloading a browser. Repository text files are normalized to LF through `.gitattributes`; path and cache ownership checks canonicalize physical paths so Windows directory junctions and legacy short-path aliases do not create false cache-boundary failures.
+
+Reference UI Contract acceptance covers schema and path confinement, atomic append-only evidence, exact-match zero-diff artifacts, separate hard-gate axes, desktop/mobile cases, manual role authority, canonical/mirror parity, and the explicit managed-browser lifecycle. The verified fixture lifecycle reports an expected initial `FAIL`, corrected `PASS`, and deliberate regression `FAIL`, with findings classified as `new`, `resolved`, and `regressed`; the live runner reports overall `PASS` only after those assertions and baseline immutability succeed. Package dry-run excludes `test/`, `tasks/`, `.codex/`, staging, and validation evidence from the release payload.
 
 The Windows live smoke has verified disposable install, cache reuse, both capability probes, and the managed-browser sequence `open about:blank` -> `snapshot` -> `close`. Release evidence still requires hosted Linux/macOS CI plus one host-driven Claude Code and Codex session that trusts the registrations, changes Doctor from `PENDING_ACTIVATION` to `ACTIVE`, and runs the existing lint script once at Stop. Record unsupported local runtime or data-egress limitations instead of claiming unperformed parity.
 

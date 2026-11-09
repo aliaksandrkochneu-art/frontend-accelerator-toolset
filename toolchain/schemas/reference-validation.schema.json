@@ -1,0 +1,299 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://frontend-accelerator.local/schemas/reference-validation.schema.json",
+  "title": "Reference UI Validation Evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "taskId",
+    "manifestVersion",
+    "manifestDigest",
+    "iteration",
+    "applicationUrl",
+    "browser",
+    "cases",
+    "findings",
+    "passedCases",
+    "changes",
+    "verdict"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": { "const": 1 },
+    "taskId": { "type": "string", "pattern": "^TASK-[0-9]{3,}$" },
+    "manifestVersion": { "type": "integer", "minimum": 1 },
+    "manifestDigest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "iteration": { "type": "integer", "minimum": 1, "maximum": 999 },
+    "applicationUrl": { "type": "string", "minLength": 1 },
+    "browser": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["session", "capability", "version"],
+      "properties": {
+        "session": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$" },
+        "capability": { "const": "agent-browser" },
+        "version": { "type": "string", "minLength": 1 }
+      }
+    },
+    "cases": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/caseEvidence" }
+    },
+    "findings": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/finding" }
+    },
+    "passedCases": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string" }
+    },
+    "changes": { "$ref": "#/$defs/changes" },
+    "verdict": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "reason"],
+      "properties": {
+        "status": { "enum": ["PASS", "FAIL", "BLOCKED", "NOT-APPLICABLE"] },
+        "reason": { "type": "string", "minLength": 1 }
+      }
+    }
+  },
+  "$defs": {
+    "axisStatus": { "enum": ["PASS", "FAIL", "BLOCKED", "NOT-APPLICABLE"] },
+    "locator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["strategy", "value"],
+      "properties": {
+        "strategy": { "enum": ["role", "label", "testId", "text", "selector"] },
+        "value": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 }
+      }
+    },
+    "stepExecution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sequence", "action", "status", "observation"],
+      "properties": {
+        "sequence": { "type": "integer", "minimum": 1 },
+        "action": { "enum": ["click", "fill", "press", "select", "check", "uncheck", "waitFor"] },
+        "locator": { "$ref": "#/$defs/locator" },
+        "value": { "type": "string" },
+        "expected": { "type": "string", "minLength": 1 },
+        "timeoutMs": { "type": "integer", "minimum": 1, "maximum": 120000 },
+        "status": { "enum": ["PASS", "FAIL", "BLOCKED"] },
+        "observation": { "type": "string", "minLength": 1 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "action": { "enum": ["click", "fill", "select", "check", "uncheck", "waitFor"] } } },
+          "then": { "required": ["locator"] }
+        },
+        {
+          "if": { "properties": { "action": { "enum": ["fill", "press", "select"] } } },
+          "then": { "required": ["value"] }
+        }
+      ]
+    },
+    "viewport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["width", "height", "deviceScaleFactor"],
+      "properties": {
+        "width": { "type": "integer", "minimum": 1 },
+        "height": { "type": "integer", "minimum": 1 },
+        "deviceScaleFactor": { "type": "number", "minimum": 0.1 }
+      }
+    },
+    "axes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["visual", "semantic", "behavior", "accessibility", "console", "network"],
+      "properties": {
+        "visual": { "$ref": "#/$defs/axisStatus" },
+        "semantic": { "$ref": "#/$defs/axisStatus" },
+        "behavior": { "$ref": "#/$defs/axisStatus" },
+        "accessibility": { "$ref": "#/$defs/axisStatus" },
+        "console": { "$ref": "#/$defs/axisStatus" },
+        "network": { "$ref": "#/$defs/axisStatus" }
+      }
+    },
+    "visualMeasurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "differentPixels",
+        "totalPixels",
+        "mismatchPercentage",
+        "mismatchRatio",
+        "colorThreshold",
+        "maxMismatchRatio",
+        "match",
+        "dimensionMismatch"
+      ],
+      "properties": {
+        "differentPixels": { "type": "integer", "minimum": 0 },
+        "totalPixels": { "type": "integer", "minimum": 1 },
+        "mismatchPercentage": { "type": "number", "minimum": 0, "maximum": 100 },
+        "mismatchRatio": { "type": "number", "minimum": 0, "maximum": 1 },
+        "colorThreshold": { "type": "number", "minimum": 0, "maximum": 1 },
+        "maxMismatchRatio": { "type": "number", "minimum": 0, "maximum": 1 },
+        "match": { "type": "boolean" },
+        "dimensionMismatch": {
+          "type": ["object", "null"],
+          "additionalProperties": true
+        }
+      }
+    },
+    "caseArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "path"],
+      "properties": {
+        "kind": {
+          "enum": ["current", "diff", "snapshot", "console", "network"]
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^cases/[a-z0-9][a-z0-9._-]*/[^/]+$"
+        }
+      }
+    },
+    "regionArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "path"],
+      "properties": {
+        "kind": {
+          "enum": ["region-current", "region-diff"]
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^cases/[a-z0-9][a-z0-9._-]*/regions/[a-z0-9][a-z0-9._-]*/[^/]+$"
+        }
+      }
+    },
+    "regionEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["regionId", "measurement", "artifacts"],
+      "properties": {
+        "regionId": { "type": "string" },
+        "measurement": { "$ref": "#/$defs/visualMeasurement" },
+        "artifacts": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/regionArtifact" }
+        }
+      }
+    },
+    "caseEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "caseId",
+        "required",
+        "route",
+        "state",
+        "viewport",
+        "setup",
+        "interactions",
+        "axes",
+        "blockedReasons",
+        "measurements",
+        "artifacts",
+        "regions",
+        "observations"
+      ],
+      "properties": {
+        "caseId": { "type": "string" },
+        "required": { "type": "boolean" },
+        "route": { "type": ["string", "null"] },
+        "state": { "type": "string", "minLength": 1 },
+        "viewport": { "$ref": "#/$defs/viewport" },
+        "setup": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/stepExecution" }
+        },
+        "interactions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/stepExecution" }
+        },
+        "axes": { "$ref": "#/$defs/axes" },
+        "blockedReasons": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "visual": { "type": "string", "pattern": "\\S" },
+            "semantic": { "type": "string", "pattern": "\\S" },
+            "behavior": { "type": "string", "pattern": "\\S" },
+            "accessibility": { "type": "string", "pattern": "\\S" },
+            "console": { "type": "string", "pattern": "\\S" },
+            "network": { "type": "string", "pattern": "\\S" }
+          }
+        },
+        "measurements": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "visual": { "$ref": "#/$defs/visualMeasurement" }
+          }
+        },
+        "artifacts": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/caseArtifact" }
+        },
+        "regions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/regionEvidence" }
+        },
+        "observations": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "findingId",
+        "caseId",
+        "regionId",
+        "axis",
+        "severity",
+        "expected",
+        "actual",
+        "evidence",
+        "correctionTarget"
+      ],
+      "properties": {
+        "findingId": { "type": "string", "minLength": 1 },
+        "caseId": { "type": "string", "minLength": 1 },
+        "regionId": { "type": ["string", "null"] },
+        "axis": { "enum": ["visual", "semantic", "behavior", "accessibility", "console", "network"] },
+        "severity": { "enum": ["critical", "high", "medium", "low"] },
+        "expected": { "type": "string", "minLength": 1 },
+        "actual": { "type": "string", "minLength": 1 },
+        "evidence": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "correctionTarget": { "type": "string", "minLength": 1 }
+      }
+    },
+    "changes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["new", "resolved", "unchanged", "regressed"],
+      "properties": {
+        "new": { "type": "array", "uniqueItems": true, "items": { "type": "string" } },
+        "resolved": { "type": "array", "uniqueItems": true, "items": { "type": "string" } },
+        "unchanged": { "type": "array", "uniqueItems": true, "items": { "type": "string" } },
+        "regressed": { "type": "array", "uniqueItems": true, "items": { "type": "string" } }
+      }
+    }
+  }
+}

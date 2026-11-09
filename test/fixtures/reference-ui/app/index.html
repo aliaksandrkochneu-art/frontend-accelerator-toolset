@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Reference UI fixture</title>
+    <link rel="stylesheet" href="./styles.css">
+    <script src="./app.js" defer></script>
+  </head>
+  <body>
+    <main id="surface" data-reference-region="surface">
+      <section id="hero" aria-labelledby="hero-title">
+        <h1 id="hero-title" class="sr-only">Reference delivery fixture</h1>
+      </section>
+
+      <button id="details-toggle" type="button" aria-expanded="false" aria-controls="details-panel">
+        <span class="sr-only">Show required details</span>
+      </button>
+
+      <section id="details-panel" aria-label="Required details" hidden>
+        <p class="sr-only">The semantic interaction completed.</p>
+        <span id="required-anchor" class="sr-only">ready</span>
+      </section>
+
+      <output id="dynamic-value" aria-label="Dynamic run identifier"></output>
+    </main>
+  </body>
+</html>

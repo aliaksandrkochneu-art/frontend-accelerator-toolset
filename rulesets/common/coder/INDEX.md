@@ -9,5 +9,8 @@ For user-visible UI changes also read:
 
 - [Pinned Web Interface Guidelines](../shared/web-interface-guidelines/command.md)
 
-Apply Vercel-specific brand preferences only when project rules or explicit direction select them.
+For work with a Reference UI Manifest or validation evidence also read:
 
+- [Reference Correction Iterations](rules/reference-correction-iterations.md)
+
+Apply Vercel-specific brand preferences only when project rules or explicit direction select them.

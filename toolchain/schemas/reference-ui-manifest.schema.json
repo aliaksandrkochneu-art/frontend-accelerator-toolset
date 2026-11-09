@@ -1,0 +1,187 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://frontend-accelerator.local/schemas/reference-ui-manifest.schema.json",
+  "title": "Reference UI Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "taskId",
+    "manifestVersion",
+    "applicationRoot",
+    "acceptancePolicy",
+    "cases"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": { "const": 1 },
+    "taskId": { "type": "string", "pattern": "^TASK-[0-9]{3,}$" },
+    "manifestVersion": { "type": "integer", "minimum": 1 },
+    "applicationRoot": { "type": "string", "minLength": 1 },
+    "acceptancePolicy": { "$ref": "#/$defs/tolerance" },
+    "cases": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/case" }
+    }
+  },
+  "$defs": {
+    "tolerance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["colorThreshold", "maxMismatchRatio"],
+      "properties": {
+        "colorThreshold": { "type": "number", "minimum": 0, "maximum": 1 },
+        "maxMismatchRatio": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "locator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["strategy", "value"],
+      "properties": {
+        "strategy": {
+          "enum": ["role", "label", "testId", "text", "selector"]
+        },
+        "value": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 }
+      }
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["action"],
+      "properties": {
+        "action": {
+          "enum": ["click", "fill", "press", "select", "check", "uncheck", "waitFor"]
+        },
+        "locator": { "$ref": "#/$defs/locator" },
+        "value": { "type": "string" },
+        "expected": { "type": "string", "minLength": 1 },
+        "timeoutMs": { "type": "integer", "minimum": 1, "maximum": 120000 }
+      }
+    },
+    "region": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "priority", "locator"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$" },
+        "priority": { "enum": ["high", "normal", "low"] },
+        "locator": { "$ref": "#/$defs/locator" },
+        "tolerance": { "$ref": "#/$defs/tolerance" }
+      }
+    },
+    "dynamicRegion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "strategy", "locator"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$" },
+        "strategy": { "enum": ["semantic", "scoped-pixel", "excluded-from-pixel"] },
+        "locator": { "$ref": "#/$defs/locator" },
+        "assertion": { "type": "string", "minLength": 1 }
+      }
+    },
+    "deviation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "description", "reason"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$" },
+        "description": { "type": "string", "minLength": 1 },
+        "reason": { "type": "string", "minLength": 1 }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "required",
+        "priority",
+        "target",
+        "state",
+        "viewport",
+        "theme",
+        "reference",
+        "regions",
+        "interactions",
+        "dynamicRegions",
+        "allowedDeviations"
+      ],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$" },
+        "required": { "type": "boolean" },
+        "priority": { "enum": ["high", "normal", "low"] },
+        "target": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "identity"],
+          "properties": {
+            "kind": { "enum": ["route", "component"] },
+            "identity": { "type": "string", "minLength": 1 },
+            "route": { "type": "string", "minLength": 1 }
+          },
+          "allOf": [
+            {
+              "if": { "properties": { "kind": { "const": "route" } } },
+              "then": { "required": ["route"] }
+            }
+          ]
+        },
+        "state": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "setup"],
+          "properties": {
+            "name": { "type": "string", "minLength": 1 },
+            "setup": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/step" }
+            }
+          }
+        },
+        "viewport": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["width", "height", "deviceScaleFactor"],
+          "properties": {
+            "width": { "type": "integer", "minimum": 1, "maximum": 10000 },
+            "height": { "type": "integer", "minimum": 1, "maximum": 10000 },
+            "deviceScaleFactor": { "type": "number", "minimum": 0.1, "maximum": 4 }
+          }
+        },
+        "theme": { "enum": ["light", "dark", "no-preference"] },
+        "locale": { "type": "string", "minLength": 2 },
+        "reference": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["sourceKind", "source", "baselinePath"],
+          "properties": {
+            "sourceKind": { "enum": ["local", "attachment", "url"] },
+            "source": { "type": "string", "minLength": 1 },
+            "baselinePath": { "type": "string", "minLength": 1 },
+            "capturedAt": { "type": "string", "format": "date-time" }
+          }
+        },
+        "tolerance": { "$ref": "#/$defs/tolerance" },
+        "regions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/region" }
+        },
+        "interactions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/step" }
+        },
+        "dynamicRegions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/dynamicRegion" }
+        },
+        "allowedDeviations": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/deviation" }
+        }
+      }
+    }
+  }
+}

@@ -126,3 +126,31 @@ test("removed backend and compatibility command names stay absent", async () => 
     assert.ok(!names.includes(banned), `banned command exists: ${banned}`);
   }
 });
+
+test("reference-aware behavior adds no public slice, transition, or orchestration", async () => {
+  const commands = await markdownNames(path.join(root, ".claude", "commands"));
+  const agents = await markdownNames(path.join(root, ".claude", "agents"));
+  const skills = (await readdir(path.join(root, ".claude", "skills"), { withFileTypes: true }))
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name);
+  assert.equal(commands.length, 18, "reference-aware behavior must not add a nineteenth command");
+  for (const [kind, names] of [["command", commands], ["agent", agents], ["skill", skills]]) {
+    assert.deepEqual(
+      names.filter((name) => /reference/i.test(name)),
+      [],
+      `reference-specific ${kind} must not be added`,
+    );
+  }
+
+  for (const name of ["ui-designer", "writing-plans", "coder", "browser-verify", "verify"]) {
+    const commandFile = path.join(root, ".claude", "commands", `${name}.md`);
+    const agentFile = path.join(root, ".claude", "agents", `${name}.md`);
+    const skillFile = path.join(root, ".claude", "skills", name, "SKILL.md");
+    const command = parseFrontmatter(await readFile(commandFile, "utf8"), commandFile);
+    assert.deepEqual(command.data["flow-next"] ?? [], transitions[name]);
+    for (const body of [command.body, await readFile(agentFile, "utf8"), await readFile(skillFile, "utf8")]) {
+      assert.doesNotMatch(body, /automatically\s+(?:invoke|run|start|chain|retry)/i);
+      assert.doesNotMatch(body, /reference-(?:ui-builder|verify|verification)\s*(?:,|\])/i);
+    }
+  }
+});

@@ -15,11 +15,104 @@ function outputBuffer() {
   };
 }
 
+async function captureForwardedCall(args) {
+  const calls = [];
+  const expected = { code: 0, signal: null, stdout: "", stderr: "" };
+  const result = await executeBrowserAdapter({
+    targetRoot: "C:/repo",
+    args,
+    execute: async (call) => {
+      calls.push(call);
+      return expected;
+    },
+  });
+
+  assert.equal(result, expected);
+  assert.equal(calls.length, 1);
+  return calls[0];
+}
+
 test("browser adapter recognizes commands around global flags", () => {
   assert.deepEqual(
     cleanBrowserArgs(["--session", "regression", "--json", "fill", "#date", "2026-08-15"]),
     ["fill", "#date", "2026-08-15"],
   );
+});
+
+test("browser adapter forwards an explicit owned session", async () => {
+  const args = ["--session", "task-001-reference", "open", "http://127.0.0.1:4173/reference"];
+
+  assert.deepEqual(await captureForwardedCall(args), {
+    targetRoot: "C:/repo",
+    name: "browser",
+    args,
+    stdio: "inherit",
+  });
+});
+
+test("browser adapter forwards set viewport for the owned session", async () => {
+  const args = ["--session", "task-001-reference", "set", "viewport", "1440", "900"];
+
+  assert.deepEqual(await captureForwardedCall(args), {
+    targetRoot: "C:/repo",
+    name: "browser",
+    args,
+    stdio: "inherit",
+  });
+});
+
+test("browser adapter forwards a full-surface screenshot output path", async () => {
+  const outputPath = "tasks/TASK-001/reference-ui/.staging/task-001-reference/cases/home/current.png";
+  const args = ["--session", "task-001-reference", "screenshot", outputPath];
+
+  assert.deepEqual(await captureForwardedCall(args), {
+    targetRoot: "C:/repo",
+    name: "browser",
+    args,
+    stdio: "inherit",
+  });
+});
+
+test("browser adapter forwards a selector-scoped screenshot output path", async () => {
+  const selector = "[data-reference-region='hero']";
+  const outputPath =
+    "tasks/TASK-001/reference-ui/.staging/task-001-reference/cases/home/regions/hero/current.png";
+  const args = ["--session", "task-001-reference", "screenshot", selector, outputPath];
+
+  assert.deepEqual(await captureForwardedCall(args), {
+    targetRoot: "C:/repo",
+    name: "browser",
+    args,
+    stdio: "inherit",
+  });
+});
+
+test("browser adapter forwards scoped screenshot diff arguments", async () => {
+  const selector = "[data-reference-region='hero']";
+  const baselinePath = "tasks/TASK-001/reference-ui/references/home/regions/hero.png";
+  const outputPath =
+    "tasks/TASK-001/reference-ui/.staging/task-001-reference/cases/home/regions/hero/diff.png";
+  const args = [
+    "--session",
+    "task-001-reference",
+    "diff",
+    "screenshot",
+    "--baseline",
+    baselinePath,
+    "--selector",
+    selector,
+    "--output",
+    outputPath,
+    "--threshold",
+    "0.025",
+  ];
+
+  assert.deepEqual(await captureForwardedCall(args), {
+    targetRoot: "C:/repo",
+    name: "browser",
+    args,
+    stdio: "inherit",
+  });
 });
 
 test("temporal input fill uses the native value setter and input/change events", async () => {

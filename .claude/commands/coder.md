@@ -18,8 +18,7 @@ $ARGUMENTS
 Use the Task tool with exactly:
 
 - subagent_type: coder
-- description: Implement frontend production behavior and the tests directly required by that behavior using the selected application root and project conventions.
+- description: Own frontend production implementation and essential tests, consuming Reference UI contracts while preserving their artifacts and passed cases.
 - prompt: $ARGUMENTS
 
 Return the agent's result to the user. Do not perform the skill's work in this command wrapper and do not continue to another role.
-

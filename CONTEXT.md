@@ -72,6 +72,18 @@ _Avoid_: Minimal coder toolkit, implementation-only workflow, mandatory pipeline
 The temporary collection of artifacts produced by skills for one numbered piece of work. It supports handoffs during delivery and may be removed after implementation is complete.
 _Avoid_: Product memory, living specification
 
+**Reference UI Contract**:
+An optional, task-scoped delivery contract that lets the existing Manual Flow carry reference-driven UI intent from planning through implementation and verification. It consists of one Reference UI Manifest, immutable local reference assets, and append-only Reference Validation evidence; it adds no command, role, transition, or automatic orchestration and is not a Living Specification.
+_Avoid_: Visual implementation pipeline, automatic screenshot loop, permanent product documentation
+
+**Reference UI Manifest**:
+The versioned machine-readable file at `tasks/TASK-NNN/reference-ui/manifest.json` that maps stable case IDs to their target route or component, required state, viewport, local baseline, named regions, tolerance, deterministic setup and interactions, semantic expectations, dynamic-region handling, and allowed deviations. UI Designer may author it as planning work; Writing Plans and Coder consume it without reinterpreting or modifying its reference intent, and Browser Verify treats it and its baselines as read-only verification inputs.
+_Avoid_: Production UI, mutable validation result, remote image URL as a baseline
+
+**Reference Validation**:
+The append-only evidence produced by Browser Verify for one compatible Reference UI Manifest version and digest. Each atomically finalized iteration records case and region artifacts, measurements, executed setup and interactions, separate visual, semantic, behavior, accessibility, console, and network axes, actionable findings, cross-iteration `new`, `resolved`, `unchanged`, and `regressed` classifications, and a `PASS`, `FAIL`, `BLOCKED`, or `NOT-APPLICABLE` verdict. Verify may read the latest compatible verdict only to report finalization readiness separately from its own project-check verdict; it never creates or recalculates Reference Validation.
+_Avoid_: Baseline update, visual verdict inferred from tests, mutable task history
+
 **Living Specification**:
 A permanent, current description of frontend architecture, API integration, UI design, or implementation truth that evolves across tasks.
 _Avoid_: Task history, changelog, repo memory
